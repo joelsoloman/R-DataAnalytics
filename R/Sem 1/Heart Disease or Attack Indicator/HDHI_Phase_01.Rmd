@@ -1,0 +1,442 @@
+---
+title: "Heart Disease Health Indicator"
+author: "Group 02 | Section 004 | Joel Addala, Chris Chhotai, Shreyansh Patel"
+date: "`r Sys.Date()`"
+output: html_document
+---
+***
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Acknowledgement 
+
+We hereby state that all work provided in this document is our own, and work referred from other sources have been sited. We confirm to have adhered to the *St. Clair College's Academic Integrity Policy*
+
+### R and R Studio Version
+
+R : R version 4.2.2 (2022-10-31 ucrt)
+
+RStudio 2022.12.0+353 "Elsbeth Geranium" Release (7d165dcfc1b6d300eb247738db2c7076234f6ef0, 2022-12-03) for Windows
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) RStudio/2022.12.0+353 Chrome/102.0.5005.167 Electron/19.1.3 Safari/537.36
+
+### R Packages Used
+
+* GGplot2 (3.4.0)
+* GGthemes (4.2.4)
+* Dplyr (1.0.10)
+* Plotly (4.10.1)
+
+```{r Load Library, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+library(plotly)
+```
+
+## The Data
+
+The Data was collected by an annual survey conducted by the CDC (USA), called the Behavioral Risk Factor Surveillance System (BRFSS). It consists of questions related to multiple factors such as Age, Lifestyle Habits, Various Medical Conditions, Gender, Financial Situations, and Education. This is done to figure out the tests and preventive measures needed for preventing heart diseases.
+
+[Link to the data](https://drive.google.com/drive/folders/1yGHB7gL5nNxY5EjzgIiDQx_sVOY_rI9-)
+
+#### Importing data:
+```{r Import Data, message=FALSE, warning=FALSE}
+ds = read.csv("Heart Disease Health Indicator.csv")
+```
+
+```{r The Data, message=FALSE, warning=FALSE, paged.print=TRUE}
+head(ds)
+```
+
+```{r Structure of Data}
+str(ds)
+```
+
+```{r Null data}
+sum(is.null(ds))
+```
+
+```{r NA data}
+sum(is.na(ds))
+```
+#### Data Description
+
+The Data has 253,680 records and 22 Variables, with no null or NA values. 
+
+##### Discrete Variables
+
+* *HeartDiseaseorAttack* - Indicates whether the individual has a history of Heart Disease or Attack
+* *Education* -  Categories representing different levels of Education
+* *GenHlth* - Categories representing different levels of General Health
+* *HighBP* - Indicates whether the individual has High Blood Pressure or not.
+* *HighChol* - Indicates whether the individual has High Cholesterol or not.
+* *CholCheck* - Indicates whether the individual has done a cholesterol check or not.
+* *Smoker* - Indicates whether the individual is a smoker or Not.
+* *Stroke* - Indicates whether the individual has history of stroke or Not.
+* *Diabetes* - Indicates whether the individual has diabetes or Not.
+* *PhysActivity* - Indicates whether the individual does any physical activities or Not.
+* *Fruits* - Indicates whether the individual consumes at least 1 fruit a day or Not.
+* *Veggies* - Indicates whether the individual consumes at least 1 vegetable a day or Not.
+* *HvyAlcoholConsump* - Indicates whether the individual is an alcoholic or Not.
+* *AnyHealthcare* - Indicates whether the individual owns any healthcare or Not.
+* *NoDocbcCost* - Individual wasn't able to meet with a doctor because of the cost.
+* *DiffWalk* - Individual has difficulty walking
+* *Sex* - Gender of the Individual
+* *Age* - Age group of the Individual (Increments of 5 per group)
+* *Income* - Income group of the Individual
+
+##### Continuous Variables
+
+* *BMI* - The Body Mass Index of the individual
+* *PhysHlth* - How many days, out of the past 30 days, was the individual physically sick?
+* *MentHlth* - How many days, out of the past 30 days, was the individual mentally ill?
+
+
+#### Changes to Data
+
+The Dataset was imported into the dataframe _ds_. No changes were made to this variable, however, changes were made to a few colums in order to better represent the data. The changes include:
+
+1. Renamed the *GenHlth* Values from Numeric (1-5) to Category 1,2,3,4, and 5. (plot 8)
+2. Renamed the *Education* Values from Numeric (1-6) to Level 1,2,3,4,5, and 6. (plot 9)
+3. Renamed the *HeartDiseaseorAttack* Values from Numeric (0,1) to NO and YES where needed.
+
+## Distribution of Heart Disease or Attack
+
+The core aspect of the data set is Heart Disease, therefore it is of interest to find the distribution of Heart disease among the given data set. A bar plot is used as the **_HeartDiseaseorAttack_** is a categorical variable.
+
+```{r HD Col, echo=TRUE, message=FALSE, warning=FALSE}
+# Set color for plot
+my_col = c("#7eb77f", "#d81e5b")
+```
+
+```{r HD code, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+ggplot(ds, aes(factor(HeartDiseaseorAttack), fill = factor(HeartDiseaseorAttack))) + 
+  geom_bar() +
+  scale_x_discrete(labels = c("0" = "NO", "1" = "YES")) +
+  scale_fill_manual(values = my_col, labels = c("0" = "NO", "1" = "YES")) +
+  labs(
+    title = "Distribution of Heart Disease or Attack",
+    x = "Heart Disease or Attack",
+    y = "Count",
+    caption = "Source: BRFSS 2015 | Kaggle",
+    fill = "Heart Disease/Attack"
+  ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text()
+  )
+```
+
+
+
+#### Observations:
+
+* The data is severely Imbalanced. From the following plot its clear that there are more than 200,000 records of "no heart disease", and barely 25,000 records of individuals with "heart disease". This may lead to some skewed results.
+* Subsetting it into a more balanced data set might help provide clarity to the analysis.
+
+
+## Distribution of Gender
+
+In this plot, the **_Sex_** variable is mapped to a 'bar' plot to identify how the data is distributed. Since **_Sex_** is also a categorical variable, the bar plot is used again to find the distribution.
+
+```{r Gender plot, fig.height=5, fig.width=10}
+ggplot(ds, aes(x = factor(Sex), fill= factor(Sex))) +
+  geom_bar(stat = "count") +
+  scale_x_discrete(labels = c("0" = "Female", "1" = "Male")) +
+  scale_y_continuous(breaks = scales::breaks_width(25000)) +
+  scale_fill_manual(values = my_col, labels = c("0" = "Female", "1" = "Male")) +
+  labs(x = "Gender",
+       y = "Count",
+       title = "Distribution of Gender",
+       caption = "Source: BRFSS 2015 | Kaggle",
+    fill = "Gender"
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text()
+  )
+```
+
+#### Observations:
+
+* Among the participants, it is clear that Female is the larger population in the data set.
+
+## Distribution of Physical Health
+
+In this plot, the **_PhysHlth_** variable is mapped to a 'area' plot to identify how the data is distributed. This variable was directed as a question asking "Out of the past 30 days, how many were you physically sick?". Therefore the data is a continuous range of 0-30 days.
+
+```{r PhysHlth Distribution, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+ggplot(ds, aes(x = PhysHlth)) +
+  geom_area(stat = "bin", fill = "#8bbf7e") +
+  labs(x = "Physical Health",
+       y = "Count",
+       title = "Distribution of Physical Health",
+       caption = "Source: BRFSS 2015 | Kaggle"
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text()
+  )
+```
+
+#### Observations:
+
+* Excluding the data at 0 days, there are more individuals who were sick for 30 days, than any other day.
+* However, the majority of the data is distributed at 0 days. following which the data count drastically drops.
+* Clearer results may be observed if we filter the 0 days variable.
+
+## Distribution of BMI
+
+The **_BMI_** variable is another continuous variable that is noted in the data set. We use a histogram this time with a binwidth of 5 to identify the distribution of the data according to the ranges of the BMI.
+
+```{r BMI Distribution, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+ggplot(ds, aes(BMI)) + 
+  geom_histogram(binwidth = 5, fill = "#8bbf7e") +
+  labs(x = "BMI",
+       y = "Count",
+       title = "Distribution of BMI",
+       caption = "Source: BRFSS 2015 | Kaggle"
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text()
+  )
+```
+
+#### Observations:
+
+* The largest distribution of data is around the BMI range of 15-30, which is to be expected. 
+* However, there are some records where an individuals BMI is past 80. These maybe outliers and need to be removed for further analysis the data accurately.
+
+## Difficulty Walking vs Mental Health
+
+To understand the impact of having difficulty to walk has on mental health, we map the **_DiffWalk_** variable and the **_MentHlth_** variable to a 'boxplot'. Since one of the variable is continuous and the other discreet, we use the box plot to isolate outliers and identify the distribution of the data.
+
+```{r Cat vs. Con, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+ggplot(ds, aes(factor(DiffWalk), MentHlth, fill = factor(DiffWalk))) +
+  geom_boxplot() +
+  scale_x_discrete(labels = c("0" = "N0", "1" = "YES")) +
+  scale_fill_manual(values = my_col, labels = c("0" = "NO","1" = "YES")) +
+  labs(x = "Difficulty Walking",
+       y = "No of Mentally sick days",
+       title = "Difficulty Walking vs Mental Health",
+       caption = "Source: BRFSS 2015 | Kaggle",
+    fill = "Difficulty Walking"
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text(),
+  ) +
+  guides(fill = FALSE)
+```
+
+#### Observations:
+
+* People who have difficulty walking are much more likely to have mental issues for longer periods than those without.
+
+
+## Heart Disease Across the Age Groups
+
+To identify the effect of Age on Heart disease, the **_Age_** variable is mapped in a 'dodged-bar' plot with the **_HeartDiseaseorAttack_** variable mapped to the fill aesthetic. This will help differentiate the distribution of the age ranges according to Heart Disease.
+
+```{r Relationship p1 Age v. HD, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+ggplot(ds, aes(x = factor(Age), fill = factor(HeartDiseaseorAttack))) +
+  geom_bar(stat = "count", position = "dodge") +
+  scale_x_discrete(labels = c("1" = "Group 1", "2" = "Group 2", "3" = "Group 3", "4" = "Group 4", 
+                              "5" = "Group 5", "6" = "Group 6", "7" = "Group 7", "8" = "Group 8",
+                              "9" = "Group 9", "10" = "Group 10", "11" = "Group 11", 
+                              "12" = "Group 12", "13" = "Group 13")) +
+  scale_fill_manual(values = my_col, labels = c("0" = "NO", "1" = "YES")) +
+  labs(x = "Age",
+       y = "Count",
+       title = "Heart Disease Across the Age Groups",
+       caption = "Source: BRFSS 2015 | Kaggle",
+    fill = "Heart Disease/Attack"
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text(),
+    axis.text.x = element_text(angle = 90)
+  )
+```
+
+#### Observations:
+
+* Age Group count increases from group 1 till group 9 and drops back down when moving from group 9 to 13. This shows the largest participating groups are 7,8,9, and 10.
+* For the distribution with heart disease it is observed that Age Group count rises from group 1 and increases steadily to group 13.
+* From this we can identify that individuals who are older are more likely to be affected by heart disease.
+
+## Heart Disease Across Different Income Levels
+
+To Identify how heart disease is spread across the different income levels surveyed, the **_Income_** variable is plotted in a 'stacked-bar' plot that is flipped on it's y-axis. The **_HeartDiseaseorAttack_** variable is mapped to the fill aesthetic in order to observe the distribution across the different income ranges.
+
+```{r fig.height=5, fig.width=10}
+ggplot(ds, aes(fill = factor(HeartDiseaseorAttack), x=factor(Income))) +
+  geom_bar(position = "stack", width = 0.75) +
+  scale_x_discrete(labels = c("1" = "Level 1", "2" = "Level 2", "3" = "Level 3", "4" = "Level 4", 
+                              "5" = "Level 5", "6" = "Level 6", "7" = "Level 7", "8" = "Level 8")) +
+  scale_fill_manual(values = my_col, labels = c("0" = "NO","1" = "YES")) +
+  labs(
+    x = "Income Ranges",
+    y = "Count",
+    title = "Heart Disease Across the Income Ranges",
+    caption = "Source: BRFSS 2015 | Kaggle",
+    fill = "Heart Disease/Attack"
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text()
+  ) +
+  guides(color = FALSE) +
+  coord_flip()
+```
+
+#### Observations:
+
+* The distribution of Income increases with increase in Level, with Level 8 income range consisting of the majority of data.
+* As for the heart disease, the amount of individuals seems to increase steadily over every income level. Group 8 has the most people who have heart disease.
+
+## BMI vs. Physical Health
+
+In this plot the **_BMI_** and **_PhysHlth_** variables are compared with each other, categorizing them by the **_GenHlth_** variable from the dataset. We try to differentiate the individuals with and without history of heart disease using the 'size' and 'alpha' aesthetics on **_HeartDiseaseorAttack_**. This is done so as to identify the density of the data according to the different **_GenHlth_** categories. A scatterplot is utilized as it is popular in identifying relationships between the variables.  
+
+```{r Color and mod Facet, message=FALSE, warning=FALSE}
+#Custom color for plot
+col_facet = c("#ee6352","#e9d758","#363635","#57a773","#484d6d")
+#Creating a modified dataframe for clearer labels
+df <- ds %>% mutate(
+  GenHlth = recode(GenHlth,
+                   "1" = "Category 1",
+                   "2" = "Category 2",
+                   "3" = "Category 3", 
+                   "4" = "Category 4",
+                   "5" = "Category 5"))
+```
+
+```{r Facet plot, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+ggplot(df, aes(BMI, PhysHlth)) +
+  geom_point(aes(alpha=factor(HeartDiseaseorAttack), size=factor(HeartDiseaseorAttack), color=factor(GenHlth))) +
+  geom_smooth(se=FALSE, linewidth = 1.5) +
+  facet_wrap(vars(factor(GenHlth)), scale = "fixed") +
+  scale_alpha_manual(values = c(0.75,0.25), labels = c("0" = "NO", "1" = "YES")) +
+  labs(
+    title = "BMI vs. Number of Sick Days Experienced",
+    subtitle = "Relation of BMI and No. of sick days, as per General Health",
+    x = "BMI",
+    y = "No. Of Sick Days",
+    caption = "Source: BRFSS 2015 | Kaggle",
+    color = "General Health Category",
+    size = "Heart Disease/Attack",
+    alpha = "Heart Disease/Attack"
+  ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text(),
+    legend.position = "right"
+  ) +
+  scale_size_discrete(labels = c("0" = "NO", "1" = "YES")) +
+  scale_color_manual(values = col_facet)
+```
+
+#### Observations:
+
+* The smooth curve across every category of general health are similar, the individuals with normal BMI have lesser sick days than those who are under weight, over weight, obese, or extremely obese.
+* As the Category progresses from 1 to 5 the less healthier an individual is. For instance, Category 1 individuals are much healthier than Category 5 individuals, Category 2 are healthier than Category 4, and so on.
+* The scatter plot was meant to find the density of individuals with heart disease/attack across each General Health category, however there is no clear difference in distribution. It is assumed that this is due to the data being heavily unbalanced as mentioned before. A better correlation maybe identified, after the data has been balanced.
+
+## Education vs. Mental Health
+##### Competition Plot
+
+In this _interactive plot_ the **_MentHlth_** variable is compared across every **_Education_** level, and segregated by **_HeartDiseaseorAttack_** variable. The intention is to find the effect on mental health that individuals of different education levels, and understand the same in either case of cardiac illness or otherwise.  
+
+A Box plot was chosen in order to isolate the outliers, and observe the distribution of data across all the education levels. 
+
+```{r Color and mod competition, message=FALSE, warning=FALSE}
+#Custom color for plot
+comp_color = c("#a50104","#fcba04","#5448c8","#b4adea","#003b36","#7ae7c7")
+#Creating a modified dataframe for clearer labels
+cdf <- ds %>% mutate(
+  HeartDiseaseorAttack = recode(HeartDiseaseorAttack,
+                   "0" = "No Heart Disease/Attack",
+                   "1" = "Heart Disease/Attack"),
+  Education = recode(Education,
+                     "1" = "Level 1", "2" = "Level 2", "3" = "Level 3",
+                     "4" = "Level 4", "5" = "Level 5", "6" = "Level 6"))
+```
+
+```{r Comp Code, message=FALSE, warning=FALSE}
+plot <- ggplot(cdf) +
+  geom_boxplot(aes(factor(Education), MentHlth, fill = factor(Education))) +
+  facet_wrap(~factor(HeartDiseaseorAttack)) +
+  scale_fill_manual(values = comp_color) +
+  labs(
+    title = "Education vs. No. of Stressful Days",
+    subtitle = "Correlation of Education and Mental Health, between people with/without Heart Conditions",
+    caption = "Source: BRFSS 2015 | Kaggle",
+    x = "Education",
+    y = "No of Stressful days",
+    fill = "Education Class"
+  ) + 
+  theme_hc() +
+  theme(axis.title = element_text(),
+        axis.text.x = element_text(angle = 90))
+```
+
+### Interactive Plot
+
+```{r Interactive Comp Plot, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+ggplotly(plot) %>%
+  layout(yaxis = list(fixedrange = TRUE),
+         xaxis = list(fixedrange = TRUE)) %>%
+  config(displayModeBar = FALSE)
+```
+
+The plot can be interacted with by hovering over the individual box plots to obtain details such as Minimum value, Lower Limit, Quantile 1, Median, Quantile 3, Upper Limit, and Maximum value. Each of the outliers can be hovered over to get the corresponding value of "MentHlth". Each of the label on the legend can be selected to remove/select each of the levels, allowing easy comparisons. 
+
+#### Observations:
+
+* Individuals with history of heart disease/attack have significantly higher number of stressful days than those without.
+* Traversing through the different Education levels shows that the number of stressful days decreases with increase in education level.
+* From this it can be understood that, Lower Education level and High number of mentally ill days can be characteristics of a individual with a heart disease.    
+
+***
+
+## References:
+
+1.  https://www.cdc.gov/brfss/annual_data/annual_2015.html
+2.  https://www.cdc.gov/brfss/annual_data/2015/pdf/codebook15_llcp.pdf
+3.  https://www.kaggle.com/code/alexteboul/heart-disease-health-indicators-dataset-notebook
+4.  https://r-graph-gallery.com/index.html
+5.  http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html
+6.  https://stulp.gmw.rug.nl/ggplotworkshop/twodiscretevariables.html
+7.  https://datascott.com/blog/subtitles-with-ggplotly/
+8.  https://r-graphics.org/recipe-facet-label-text
+9.  https://towardsdatascience.com/data-visualization-101-how-to-choose-a-chart-type-9b8830e558d6
+10. http://www.sthda.com/english/wiki/ggplot2-axis-ticks-a-guide-to-customize-tick-marks-and-labels
+11. https://www.youtube.com/watch?v=qnw1xDnt_Ec
+12. https://www.youtube.com/watch?v=rBp3eYHrsfo
+13. https://www.rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf
+
+***
+
+## Questionaire
+
+> 1. In what ways do you think data visualization is important to understanding a data set?  
+
+Vizualization is important when it comes to summarising the large amount of data into simple, clear, and understandable information. Where the data set provides raw numbers, vizualisation can help in narrowing down on a few key variables and literally picture the data.
+
+> 2. In what ways do you think data visualization is important to communicating important aspects of a data set?  
+
+When communicating the results of analysis, presenting the findings in mathematical or statistical manner might not be understandable to everyone. As the saying goes "A picture is worth a thousand words", a good vizualization would be clear to understand with few to no explaination, making it an effective communicating tool.
+
+> 3. What role does your integrity as an analyst play when creating a data visualization for communicating results to others?  
+
+When creating Data Vizualizations it is important to consider the business requirement or the outcome of the analysis. Much care must be taken into to consideration to avoid bais and present concrete findings with the data to back it up.
+
+> 4. How many variables do you think you can successfully represent in a visualization? What happens when you exceed this number?  
+
+In a vizualization, a maximum of 4 variables can be plotted and successfully represented. In case of more variables, the viz becomes cluttered and unreadable.
+
+***

@@ -1,0 +1,899 @@
+---
+title: "Heart Disease Health Indicator Project 2"
+author: "Group 02 | Section 004 | Joel Addala, Chris Chhotai, Shreyansh Patel"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Acknowledgement 
+
+We, Joel Addala, Chris Chhotai, and Shreyansh Patel, hereby state that we have not communicated with or gained information in any way from any person or resource that would violate the College’s academic integrity policies, and that all work presented is our own. In addition, we also agree not to share our work in any way, before or after submission, that would violate the College’s academic integrity policies
+
+### R and R Studio Version
+
+R : R version 4.2.2 (2022-10-31 ucrt)
+
+RStudio 2023.03.0+386 "Cherry Blossom" Release (3c53477afb13ab959aeb5b34df1f10c237b256c3, 2023-03-09) for Windows
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) RStudio/2023.03.0+386 Chrome/108.0.5359.179 Electron/22.0.3 Safari/537.36
+
+### R Packages Used
+
+* GGplot2 (3.4.0)
+* GGthemes (4.2.4)
+* Dplyr (1.0.10)
+* Plotly (4.10.1)
+* caret (6.0.93)
+* knitr (1.41)
+* naniar (1.0.0)
+* modeest (2.4.0)
+* patchwork (1.1.2)
+* plotly (4.10.1)
+
+```{r Load Library, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+library(plotly)
+library(caret)
+library(knitr)
+library(kableExtra)
+library(naniar)
+library(modeest)
+library(patchwork)
+library(plotly)
+```
+
+## The Data
+
+The Data was collected by an annual survey conducted by the CDC (USA), called the Behavioral Risk Factor Surveillance System (BRFSS). It consists of questions related to multiple factors such as Age, Lifestyle Habits, Various Medical Conditions, Gender, Financial Situations, and Education. This is done to figure out the tests and preventive measures needed for preventing heart diseases.
+
+[Link to the data](https://drive.google.com/drive/folders/1yGHB7gL5nNxY5EjzgIiDQx_sVOY_rI9-)
+
+#### Importing data:
+
+```{r Import Data, message=FALSE, warning=FALSE}
+data = read.csv("Heart Disease Health Indicator.csv")
+
+# Table View of data
+kbl(data[1:6,]) %>%
+  kable_paper() %>%
+  scroll_box(width = "100%")
+```
+
+### Explore Data
+
+```{r}
+str(data)
+```
+
+```{r}
+n_miss(data)
+```
+
+```{r}
+any_na(data)
+```
+```{r}
+miss_var_summary(data)
+```
+
+#### Data Description
+
+The Data has 253,680 records and 22 Variables, with no null or NA values. 
+
+##### Discrete Variables
+
+* *HeartDiseaseorAttack* - Indicates whether the individual has a history of Heart Disease or Attack
+* *Education* -  Categories representing different levels of Education
+* *GenHlth* - Categories representing different levels of General Health
+* *HighBP* - Indicates whether the individual has High Blood Pressure or not.
+* *HighChol* - Indicates whether the individual has High Cholesterol or not.
+* *CholCheck* - Indicates whether the individual has done a cholesterol check or not.
+* *Smoker* - Indicates whether the individual is a smoker or Not.
+* *Stroke* - Indicates whether the individual has history of stroke or Not.
+* *Diabetes* - Indicates whether the individual has diabetes or Not.
+* *PhysActivity* - Indicates whether the individual does any physical activities or Not.
+* *Fruits* - Indicates whether the individual consumes at least 1 fruit a day or Not.
+* *Veggies* - Indicates whether the individual consumes at least 1 vegetable a day or Not.
+* *HvyAlcoholConsump* - Indicates whether the individual is an alcoholic or Not.
+* *AnyHealthcare* - Indicates whether the individual owns any healthcare or Not.
+* *NoDocbcCost* - Individual wasn't able to meet with a doctor because of the cost.
+* *DiffWalk* - Individual has difficulty walking
+* *Sex* - Gender of the Individual
+* *Age* - Age group of the Individual (Increments of 5 per group)
+* *Income* - Income group of the Individual
+
+##### Continuous Variables
+
+* *BMI* - The Body Mass Index of the individual
+* *PhysHlth* - How many days, out of the past 30 days, was the individual physically sick?
+* *MentHlth* - How many days, out of the past 30 days, was the individual mentally ill?
+
+
+
+
+
+
+## Cleaning Data
+
+### Solving data imbalance:
+
+```{r}
+table(data$HeartDiseaseorAttack)
+```
+```{r}
+prop.table(table(data$HeartDiseaseorAttack))
+```
+
+It is observed that the data is severely imbalanced. To solve this issue the "downSample()" function from the caret package is used. The original data set is down sampled because there is too much data in the majority class.
+
+#### Down Sampling
+
+Down Sampling works by reducing the Majority class to an equal size of the Minority class.
+
+```{r}
+dataset <- downSample(x = data[, -ncol(data)], y=factor(data$HeartDiseaseorAttack))
+```
+
+```{r}
+str(dataset)
+```
+
+```{r}
+table(dataset$HeartDiseaseorAttack)
+```
+
+It is observed that the total number of records have been reduced from 253,680 to only about 47,786. The ratio of the classes have also become 1:1.
+
+
+
+
+
+
+## Univariate Analysis
+
+
+
+
+### BMI
+###### Numerical Variable 1
+
+BMI is one of the numeric variables in the data set. To understand the potential values of BMI in the data set, the frequency table is created.
+
+```{r}
+kbl(table(dataset$BMI)) %>%
+  kable_paper() %>%
+  scroll_box(height = "300px", width = "200px")
+```
+
+```{r}
+ggplot(dataset, aes(BMI)) + 
+  geom_histogram(fill = "#8bbf7e") +
+  labs(x = "BMI",
+       y = "Count",
+       title = "Distribution of BMI",
+       caption = "Source: BRFSS 2015 | Kaggle"
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text()
+  ) 
+```
+
+
+
+* Q1. We can observe that there are values that are abnormal for BMI from a basic domain knowledge, therefore these outliers need to be removed. For this, the upper and lower limits should be identified by using the Inter Quantile Range and the data needs to be subset accordingly. And the visualization plot is shown below.
+
+##### Finding Limits
+
+```{r}
+
+BMI_q1 = quantile(dataset$BMI, 0.25)
+BMI_q2 = quantile(dataset$BMI, 0.75)
+
+BMI_iqr = IQR(dataset$BMI)
+
+bmi_lower_limit = BMI_q1 - (1.5 * BMI_iqr)
+bmi_upper_limit = BMI_q2 + (1.5 * BMI_iqr)
+
+print(bmi_lower_limit)
+print(bmi_upper_limit)
+```
+
+
+
+##### Filtering the dataset according to calculated limits
+
+```{r}
+clean_bmi_ds <- dataset %>% filter(BMI >= bmi_lower_limit & BMI <= bmi_upper_limit)
+
+kbl(table(clean_bmi_ds$BMI)) %>%
+  kable_paper() %>%
+  scroll_box(height = "300px", width = "200px")
+```
+
+* Q2. Since ourdataset had outliers, the upper and lower limits of BMI have been identified and subset with the help of IQR.
+
+##### Vizualization
+
+```{r fig.width=10, message=FALSE, warning=FALSE}
+ggplot(clean_bmi_ds, aes(BMI)) + 
+  geom_histogram(fill = "#8bbf7e") +
+  labs(x = "BMI",
+       y = "Count",
+       title = "Distribution of BMI",
+       caption = "Source: BRFSS 2015 | Kaggle"
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text()
+  ) 
+```
+
+* Q3. The Shape of variable is shown in below code.
+
+```{r}
+summary(clean_bmi_ds$BMI)
+```
+
+```{r}
+mlv(clean_bmi_ds$BMI, method = "mfv")
+```
+
+* Q4. Since the data is normally distributed, no transformation is required.
+
+* Q5. The appropriate measure of central tendency is already calculated as above.
+
+*Q6.  The Visualization shows that the BMI variable is a normal distribution. To verify, the Mean, Median, and Mode is calculated. With those three values it is clear that the center of the curve is at the center of the distribution.
+
+
+
+
+### PhysHlth : Number of Physically Sick days (PhysHlth) (Out of 30)
+###### Numeric Variable 2
+
+In this plot, the PhysHlth variable is mapped to identify how the data is distributed. This variable was directed as a question asking "Out of the past 30 days, how many were you physically sick?". Therefore the data is a continuous range of 0-30 days.
+
+##### Check data integrity
+
+```{r}
+kbl(table(clean_bmi_ds$PhysHlth)) %>%
+  kable_paper() %>%
+  scroll_box(height = "300px", width = "200px")
+```
+
+* Q1. All values are within 30, representing the response out of 30 days, therefore there are no possibilities of outliers in this variable.
+
+* Q2. Since there are no outliers for this variable there is no need to clean the data and handle them.
+
+##### Visualization
+
+```{r message=FALSE, warning=FALSE}
+library(ggplot2)
+
+ggplot(clean_bmi_ds, aes(x = PhysHlth)) +
+  geom_density(fill = "#1C86EE", alpha = 0.8) +
+  labs(x = "Physical Health",
+       y = "Density",
+       title = "Distribution of Physical Health",
+       caption = "Source: BRFSS 2015 | Kaggle"
+    ) +
+  theme_minimal() +
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.caption = element_text(hjust = 0)
+  )
+
+```
+
+
+
+* Q3. Shape of the variable
+
+It is observed from the plot itself that the variable is skewed to the Right. We can also check the Mean, median, and mode to cross verify the skewness.
+
+```{r}
+summary(clean_bmi_ds$PhysHlth)
+```
+```{r}
+mlv(clean_bmi_ds$PhysHlth, method = "mfv")
+```
+* Q4. It is observed that the Median and mode are 0 and the mean is 6.31. However, the Maximum value is 30 representing the rightward skewness of the plot. Therefore it is best to apply some transformation in order to make the data normally distributed.
+
+* To normalize the variable the Log of the variable can be taken into consideration as there is a long right tail which is plotted below.
+
+
+```{r}
+library(ggplot2)
+
+phys_health <- data.frame(PhysHlth = clean_bmi_ds$PhysHlth)
+ggplot(phys_health, aes(x = log10(PhysHlth + 1))) +
+  geom_density(fill = "#1C86EE", alpha = 0.8) +
+  labs(x = "Physical Health",
+       y = "Density",
+       title = "Distribution of Physical Health",
+       caption = "Source: BRFSS 2015 | Kaggle"
+    ) +
+  theme_minimal() +
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.caption = element_text(hjust = 0)
+  )
+
+
+```
+
+
+* Q5. The measure of the central tendencies are calculated below.
+
+```{r}
+summary(log10(clean_bmi_ds$PhysHlth + 1))
+```
+* Q6. When the data is positively skewed, the median is often a better measure of central tendency than the mean, because the median is less sensitive to extreme values. In this case, we can see that the median is 0, which is consistent with the shape of the density plot. Therefore we will choose median as the measure of our central tendency.
+
+
+
+### Number of Stressed Days(MentHlth) (Out of 30)
+###### Numerical Variable 3
+
+In this plot, the MentHlth variable is mapped to identify how the data is distributed. This variable was directed as a question asking "Out of the past 30 days, how many were you mentally sick?". Therefore the data is a continuous range of 0-30 days.
+
+##### Check data integrity
+
+```{r}
+kbl(table(clean_bmi_ds$MentHlth)) %>%
+  kable_paper() %>%
+  scroll_box(height = "300px", width = "200px")
+```
+* Q1. Since, all values are within 30, representing the response out of 30 days, therefore there are no possibilities of outliers in this variable.
+
+* Q2. Since there are no outliers for this variable there is no need to clean the data and handle them.
+
+
+##### Visualization
+
+```{r}
+ggplot(clean_bmi_ds, aes(x = MentHlth)) +
+  geom_density(stat = "density", color = "#EEEE00", fill = "#EEEE00", alpha = 0.3, bw = 2) +
+  geom_vline(aes(xintercept = median(MentHlth)), color = "red", linetype = "dashed", size = 1) +
+  labs(x = "Mental Health",
+       y = "Density",
+       title = "Distribution of Mental Health",
+       subtitle = paste("Median =", median(clean_bmi_ds$MentHlth)),
+       caption = "Source: BRFSS 2015 | Kaggle"
+    ) +
+  theme_minimal() +
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.caption = element_text(hjust = 0),
+    plot.subtitle = element_text(size = 10, hjust = 0.5)
+  )
+
+```
+
+* Q3.  Shape of the variable
+
+The variable is shown to be skewed to the right from the plot itself. To further confirm the skewness, we can additionally cross-check the Mean, Median, and Mode.
+
+```{r}
+summary(clean_bmi_ds$MentHlth)
+```
+```{r}
+mlv(clean_bmi_ds$MentHlth, method = "mfv")
+```
+
+* Q4. It has been noted that the mean is 3.756 and that the median and mode are also 0. The plot's rightward skewness is represented by the Highest value of 30, which is nevertheless. Consequently, in order to make the data properly distributed, it is best to perform some change.
+
+* To normalize the variable the Log of the variable can be taken into consideration as there is a long right tail.
+
+```{r}
+library(ggplot2)
+
+ment_health <- data.frame(MentHlth = clean_bmi_ds$MentHlth)
+ggplot(ment_health, aes(x = log10(clean_bmi_ds$MentHlth + 1))) +
+  geom_density(stat = "density", color = "#EEEE00", fill = "#EEEE00", alpha = 0.3, bw = 2) +
+  geom_vline(aes(xintercept = median(MentHlth)), color = "red", linetype = "dashed", size = 1) +
+  labs(x = "Mental Health",
+       y = "Density",
+       title = "Distribution of Mental Health",
+       subtitle = paste("Median =", median(clean_bmi_ds$MentHlth)),
+       caption = "Source: BRFSS 2015 | Kaggle"
+    ) +
+  theme_minimal() +
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    plot.caption = element_text(hjust = 0),
+    plot.subtitle = element_text(size = 10, hjust = 0.5)
+  )
+
+
+```
+
+
+* Q5. The measure of the central tendencies are calculated below.
+
+```{r}
+summary(log10(clean_bmi_ds$MentHlth + 1))
+```
+
+* Q6. When the data is positively skewed, the median is often a better measure of central tendency than the mean, because the median is less sensitive to extreme values. In this case, we can see that the median is 0, which is consistent with the shape of the density plot. Therefore we will choose median as the measure of our central tendency.
+
+### Age
+###### Categorical Variable 1
+
+According to the Data description provided along with the data set, it is understood that the age is a factor of 13 levels with each level representing the age as a collection of 5 years. As such, a bar plot is used to identify the distribution of the categorical variable.
+
+##### Visualization
+```{r fig.width=10}
+ggplot(clean_bmi_ds, aes(x = factor(Age))) +
+  geom_bar( fill = "#63B8FF") +
+  scale_x_discrete(labels = c("1" = "Group 1", "2" = "Group 2", "3" = "Group 3", "4" = "Group 4", 
+                              "5" = "Group 5", "6" = "Group 6", "7" = "Group 7", "8" = "Group 8",
+                              "9" = "Group 9", "10" = "Group 10", "11" = "Group 11", 
+                              "12" = "Group 12", "13" = "Group 13")) +
+  labs(x = "Age",
+       y = "Count",
+       title = "Distribution of Age Groups",
+       subtitle = "As Count",
+       caption = "Source: BRFSS 2015 | Kaggle",
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text(),
+    axis.text.x = element_text(angle = 90)
+  )
+```
+
+
+* The number of unique values are not too many as all of the data fit into 13 categories. That said, it can be more efficient to have lesser number of factors in the variable 
+
+```{r}
+ggplot(clean_bmi_ds, aes(x = factor(Age))) +
+  geom_bar( aes(y = ..prop.., group = 1),stat = "count",position = 'stack',fill = "#63B8FF") +
+  scale_y_continuous(labels = scales::percent_format())+
+  scale_x_discrete(labels = c("1" = "Group 1", "2" = "Group 2", "3" = "Group 3", "4" = "Group 4", 
+                              "5" = "Group 5", "6" = "Group 6", "7" = "Group 7", "8" = "Group 8",
+                              "9" = "Group 9", "10" = "Group 10", "11" = "Group 11", 
+                              "12" = "Group 12", "13" = "Group 13")) +
+  labs(x = "Age",
+       y = "Proportions",
+       title = "Distribution of Age Groups",
+       subtitle = "As Proportions",
+       caption = "Source: BRFSS 2015 | Kaggle",
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text(),
+    axis.text.x = element_text(angle = 90)
+  )
+```
+
+```{r}
+unique(clean_bmi_ds$Age)
+```
+
+* Q1. This code produces a bar plot where the x-axis represents the different Age groups and the y-axis represents the count of observations in each group. The labels of the x-axis have been adjusted to show the actual Age groups.
+
+* Q2. The code below that  produces a bar plot where the x-axis represents the different Age groups and the y-axis represents the distribution of proportions in each group. The labels of the x-axis have been adjusted to show the actual Age groups.
+
+* Q3. After observing the plot, it is clear that the higher number of records are in the older age groups, with majority of the data belonging to groups 9 to 11.
+
+* Q4. The number of unique values are not too many as all of the data fit into 13 categories. That said, it can be more efficient to have lesser number of factors in the variable.
+
+
+### Education
+###### Categorical Variable 2
+
+According to the Data description provided along with the data set, it is understood that the age is a factor of 13 levels with each level representing the age as a collection of 5 years. As such, a bar plot is used to identify the distribution of the categorical variable.
+
+##### Visualization
+
+
+
+
+
+```{r}
+ggplot(clean_bmi_ds, aes(x = factor(Education))) +
+  geom_bar(fill = "#FF82AB") +
+  scale_x_discrete(labels = c("1" = "Group 1", "2" = "Group 2", "3" = "Group 3", "4" = "Group 4", 
+                              "5" = "Group 5", "6" = "Group 6")) +
+  labs(x = "Education",
+       y = "Count",
+       title = "Distribution of Education Groups",
+       subtitle = "As Count",
+       caption = "Source: BRFSS 2015 | Kaggle",
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text(),
+    axis.text.x = element_text(angle = 90)
+  )
+```
+
+```{r}
+ggplot(clean_bmi_ds, aes(x = factor(Education))) +
+  geom_bar(aes(y = ..prop.., group = 1),stat = "count",position = 'stack', fill = "#FF82AB") +
+  scale_y_continuous(labels = scales::percent_format())+
+  scale_x_discrete(labels = c("1" = "Group 1", "2" = "Group 2", "3" = "Group 3", "4" = "Group 4", 
+                              "5" = "Group 5", "6" = "Group 6")) +
+  labs(x = "Education",
+       y = "Proportions",
+       title = "Distribution of Education Groups",
+       subtitle = "As Proportions",
+       caption = "Source: BRFSS 2015 | Kaggle",
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text(),
+    axis.text.x = element_text(angle = 90)
+  )
+```
+
+```{r}
+unique(clean_bmi_ds$Education)
+```
+
+
+* Q1. This code produces a bar plot where the x-axis represents the Education groups and the y-axis represents the count of observations in each group. The labels of the x-axis have been adjusted to show the actual Education groups.
+
+* Q2. The code below that  produces a bar plot where the x-axis represents the Education groups and the y-axis represents the distribution of proportions in each group. The labels of the x-axis have been adjusted to show the actual Education groups.
+
+* Q3. The plot shows that the majority of individuals fall under education groups 4, 5, and 6, whereas education group 1 has the lowest count of individuals. Additionally, the plot does not show any extreme outliers or unexpected patterns, and the distribution seems relatively balanced.
+
+* Q4. This plot has six unique values for the Education variable in the given plot which seems appropriate and makes the plot easy to interpret. It allows for clear differentiation between the education groups and avoids clutter in the plot while still providing enough detail to understand the distribution of education levels in the dataset. 
+
+
+### Age
+###### Categorical Variable 3
+
+
+```{r}
+ggplot(clean_bmi_ds, aes(x = factor(GenHlth))) +
+  geom_bar(fill = "#EE9572") +
+  scale_x_discrete(labels = c("1" = "Group 1", "2" = "Group 2", "3" = "Group 3", "4" = "Group 4", 
+                              "5" = "Group 5")) +
+  labs(x = "General Health",
+       y = "Count",
+       title = "Distribution of General Health",
+       subtitle = "As Count",
+       caption = "Source: BRFSS 2015 | Kaggle",
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text(),
+    axis.text.x = element_text(angle = 90)
+  )
+```
+
+```{r}
+ggplot(clean_bmi_ds, aes(x = factor(GenHlth))) +
+  geom_bar(aes(y = ..prop.., group = 1),stat = "count",position = 'stack', fill = "#EE9572") +
+  scale_y_continuous(labels = scales::percent_format())+
+  scale_x_discrete(labels = c("1" = "Group 1", "2" = "Group 2", "3" = "Group 3", "4" = "Group 4", 
+                              "5" = "Group 5", "6" = "Group 6")) +
+  labs(x = "General Health",
+       y = "Proportions",
+       title = "Distribution of General Health",
+       subtitle = "As Proportions",
+       caption = "Source: BRFSS 2015 | Kaggle",
+    ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text(),
+    axis.text.x = element_text(angle = 90)
+  )
+```
+
+```{r}
+unique(clean_bmi_ds$GenHlth)
+```
+
+
+* Q1. This code produces a bar plot where the x-axis represents the General Health and the y-axis represents the count of observations in each group. The labels of the x-axis have been adjusted to show the actual Education groups.
+
+* Q2. The code below that  produces a bar plot where the x-axis represents the Education groups and the y-axis represents the distribution of proportions in each group. The labels of the x-axis have been adjusted to show the actual Education groups.
+
+* Q3. There are no unusual observations in the plot, and the distribution of general health appears to be relatively balanced, with the highest number of participants in Group 3 (which corresponds to "good" general health) and the lowest number of participants in Group 1 (which corresponds to "poor" general health).
+
+* Q4. The variable "General Health" has five distinct values. In general, it is preferable to keep the number of distinct values on a categorical variable to a manageable number, as having too many categories can cause the plot to become cluttered and difficult to interpret. The number of distinct values in this plot appears to be appropriate, striking a good balance between providing sufficient information and maintaining clarity.
+
+## Bivariate Analysis
+
+
+
+
+
+### BMI vs. Physical Health Score
+###### Numeric vs. Numeric plot 1
+
+The BMI is plotted against the continuous variable PhysHlth. These values are the responses where participants stated their number of physically sick days out of the past 30 days. 
+
+##### Check data integrity
+
+```{r}
+kbl(table(clean_bmi_ds$PhysHlth)) %>%
+  kable_paper() %>%
+  scroll_box(height = "300px", width = "200px")
+```
+
+All values are within 30, representing the response out of 30 days, therefore there are no possibilities of outliers in this variable.
+
+##### Visualization
+
+```{r fig.width=10, message=FALSE, warning=FALSE}
+ggplot(clean_bmi_ds, aes(BMI, PhysHlth)) +
+  geom_point() +
+  geom_smooth(method = "auto", se=FALSE) +
+  labs(
+    title = "BMI vs. Number of Sick Days Experienced",
+    subtitle = "",
+    x = "BMI",
+    y = "No. Of Sick Days (PhsyHlth)",
+    caption = "Source: BRFSS 2015 | Kaggle",
+  ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text()
+  )
+
+
+```
+
+* Q1. A scatter plot depicts the relationship between two continuous variables, BMI and Physical Health. The alpha argument to the "geom_point()" function specifies how opaque the points are when there are many data points, preventing overplotting. Because of the theme bw() function, the plot has a black and white theme.
+
+* Q2. Physical health and BMI have a negative relationship. This means that as a person's BMI increases, so does their physical health. The strength of the relationship appears to be moderate, as there is a noticeable downward trend in the data points, but there is still some variability in the data.
+
+* Q3. On observation, it is clear that for smaller BMI, the No of sick days decreases with increase in BMI. However, the reverse happens after a certain point (BMI = 22) resulting with the PhysHlth Variable increasing with BMI. The shape appears to be an inverted bell curve.
+
+* Q4. It can be inferred that at optimal BMI (20-24) the No. of sick days is the least, while lower or higher BMIs lead to higher No of sick days.
+
+
+
+
+
+### BMI vs. Mental Health Score
+###### Numeric vs. Numeric plot 2
+
+The BMI is plotted against the continuous variable MentHlth. These values are the responses where participants stated their number of Mentally sick days out of the past 30 days. 
+
+##### Check data integrity
+
+```{r}
+kbl(table(clean_bmi_ds$MentHlth)) %>%
+  kable_paper() %>%
+  scroll_box(height = "300px", width = "200px")
+```
+
+All values are within 30, representing the response out of 30 days, therefore there are no possibilities of outliers in this variable.
+
+##### Visualization
+
+```{r fig.width=10, message=FALSE, warning=FALSE}
+ggplot(clean_bmi_ds, aes(BMI, MentHlth)) +
+  geom_point() +
+  geom_smooth(method = "auto", se=FALSE) +
+  labs(
+    title = "BMI vs. Number of Stressed Days Experienced",
+    subtitle = "",
+    x = "BMI",
+    y = "No. Of Stressed Days (MentHlth)",
+    caption = "Source: BRFSS 2015 | Kaggle",
+  ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text()
+  )
+```
+
+* Q1.  Mental Health vs. BMI A scatter plot with points representing individual observations and a smoothed line indicating the overall trend. 
+
+* Q2.  On observation, it is clear that for smaller BMI, the No of sick days decreases with increase in BMI. However, the reverse happens after a certain point (BMI = 24) resulting with the MentHlth Variable increasing with BMI. The shape appears to be an inverted bell curve.
+
+* Q3. The number of mentally ill days seem to be generally lower than the number of physically sick days. However, it follows the same pattern as PhysHlth when compared to BMI. 
+
+* Q4. This means that for optimal BMI, mental sickness is relatively lesser than those which higher BMI.
+
+
+
+### Physical Health Score vs. Mental Health Score
+###### Numeric vs. Numeric plot 3
+
+The Physical Health  is plotted against the continuous variable Meantal Health. These values are the responses where participants stated their number of physically sick days and meantally sick out of the past 30 days. 
+
+##### Check data integrity
+
+```{r}
+kbl(table(clean_bmi_ds$PhysHlth,clean_bmi_ds$MentHlth)) %>%
+  kable_paper() %>%
+  scroll_box(height = "300px", width = "200px")
+```
+
+##### Visualization
+
+```{r fig.width=10, message=FALSE, warning=FALSE}
+quantiles <- quantile(clean_bmi_ds$MentHlth, c(0.025, 0.975))
+
+ggplot(clean_bmi_ds, aes(x = PhysHlth, y = MentHlth)) +
+  geom_jitter() +
+  stat_smooth(method = "auto", se = FALSE) +
+  stat_smooth(aes(ymin = quantiles[1], ymax = quantiles[2]), alpha = 0.2, geom = "ribbon", fill = "blue") +
+  labs(
+    title = "Physical Health vs. Mental Health",
+    x = "Physical Health",
+    y = "Mental Health",
+    caption = "Source: BRFSS 2015 | Kaggle"
+  ) +
+  theme_hc() +
+  theme(
+    axis.title = element_text()
+  )
+
+
+```
+
+
+
+* Q1. The plot includes a scatterplot of the data points with Physical Health on the X-Axis and Mental Health on the Y-Axis and a smoothed line to show the overall trend in the data. In addition, a ribbon is added to show the 95% confidence interval of the smoothed line.
+
+* Q2. The scatter plot shows that as physical health improves, so does mental health. However, the relationship is not very strong because mental health scores vary greatly at each level of physical health. The relationship is positive, which means that as one variable increases, so does the other. Overall, the plot suggests that physical health is a poor predictor of mental health outcomes and that other factors
+
+* Q3. The scatterplot shows a moderate negative linear relationship between the two variables, suggesting that people with better physical health tend to have better mental health, and vice versa. The blue ribbon in the plot represents the 95% confidence interval of the mean mental health score for each level of physical health.There also appears to be a concentration of observations near the lower end of the physical health scale, indicating that a significant proportion of individuals in the dataset report poor physical health.
+
+* Q4. The plot shifts, especially at lower levels of physical health, where the data appears more scattered. This variation suggests that factors other than physical health may influence mental health.  The strength of the correlation, as calculated in #2 above, indicates that the trend is statistically significant but not very strong.
+
+### Education Level vs. BMI
+##### Numeric vs. Categorical plot 1
+
+Education variable is plotted against the BMI variable. The Education Variable is a categorical variable which has 6 levels, each indicating a higher form of education. 
+
+##### Visualization
+
+```{r fig.width=10}
+plot <- ggplot(clean_bmi_ds) +
+  geom_boxplot(aes(factor(Education), BMI), fill = "#8bbf7e") +
+  scale_x_discrete(label = c(
+                     "1" = "Level 1", "2" = "Level 2", "3" = "Level 3",
+                     "4" = "Level 4", "5" = "Level 5", "6" = "Level 6")) +
+  labs(
+    title = "Education Levels vs. BMI",
+    subtitle = "Distribution of BMI across different Education Levels",
+    caption = "Source: BRFSS 2015 | Kaggle",
+    x = "Education Category",
+    y = "BMI"
+  ) + 
+  theme_hc() +
+  theme(axis.title = element_text(),
+        axis.text.x = element_text(angle = 0))
+```
+
+```{r}
+ggplotly(plot) %>%
+  layout(yaxis = list(fixedrange = TRUE),
+         xaxis = list(fixedrange = TRUE)) %>%
+  config(displayModeBar = FALSE)
+```
+
+
+
+* Q1. This scatter plot, with Education Category on the x-axis and BMI on the y-axis, the "labs" function adds a title, caption, and axis labels to the plot. 
+
+
+* Q2. The form of the relationship appears to be non-linear.On Observation, it is noted that the distribution reduces along with the increase in education level.
+
+
+* Q3. This means on average, the individuals with higher education levels have lower BMI than those of lower education level.
+
+
+* Q4. In the boxplot, the variability in BMI within each education level can be observed by looking at the size of the boxes and the whiskers. If the boxes for each education level are large and the whiskers extend far from the box, then there is greater variability in BMI within that education level. On the other hand, if the boxes are small and the whiskers are short, then there is less variability in BMI within that education level.
+
+***
+
+### Age vs. BMI
+##### Numeric vs. Categorical plot 2    
+
+Education variable is plotted against the BMI variable. The Education Variable is a categorical variable which has 6 levels, each indicating a higher form of education.
+
+
+```{r}
+plot <- ggplot(clean_bmi_ds, aes(x = factor(Age), y = BMI)) +
+  geom_jitter(alpha = 0.5, color = "#8bbf7e", width = 0.2) +
+  stat_summary(fun.y = mean, geom = "point", shape = 20, size = 3, fill = "white", color = "black") +
+  stat_summary(fun.y = mean, geom = "errorbar", width = 0.2, linewidth = 1, color = "black") +
+  geom_hline(yintercept = mean(clean_bmi_ds$BMI), linetype = "dashed", color = "red") +
+  geom_text(aes(label = round(after_stat(y), 1)), stat = "summary", vjust = -0.5, size = 3) +
+  labs(
+    title = "Age vs. BMI",
+    subtitle = "Distribution of BMI across different Age Groups",
+    caption = "Source: BRFSS 2015 | Kaggle",
+    x = "Age",
+    y = "BMI"
+  ) +
+  theme_classic() +
+  theme(axis.title = element_text(),
+        axis.text.x = element_text(angle = 0)) 
+plot
+```
+
+
+* Q1.The plot is a scatterplot with jittered points representing the BMI values for different age groups. The vertical axis shows BMI values, and the horizontal axis shows different age group
+
+* Q2. There appears to be a weak, positive relationship between age and BMI. As age increases, BMI values tend to increase slightly, although there is a significant amount of variability in BMI values within each age group. The shape of the relationship appears to be linear, with a slight positive slope.
+
+* Q3. The strength of the relationship is weak, as there is a large amount of overlap in BMI values between different age groups.The dots and error bars do not show a clear pattern of increasing or decreasing BMI values as age increases, which further supports the weak relationship observed in the plot.
+
+* Q4. In the Age vs. BMI plot, we observe a lot of variability in BMI values at each age level, with some ages having a wider spread of BMI values than others. This corresponds to the moderate strength of the positive relationship we calculated earlier, as there is a clear overall trend of increasing BMI with increasing age, but there is still a fair amount of variability in BMI within each age group.The dashed red line represents the overall mean BMI for the entire dataset, and we can see that the mean BMI for each age group tends to be close to the overall mean.
+
+
+```{r}
+library(ggplot2)
+
+ggplot(clean_bmi_ds) +
+  geom_boxplot(aes(x = factor(GenHlth), y = BMI), outlier.shape = NA, fill = "lightblue") +
+  scale_x_discrete(label = c(
+                     "1" = "Group 1", "2" = "Group 2", "3" = "Group 3",
+                     "4" = "Group 4", "5" = "Group 5")) +
+  labs(
+    title = "Two variables",
+    subtitle = "Distribution of BMI across different General Health Groups",
+    caption = "Source: BRFSS 2015 | Kaggle",
+    x = "General Health (GenHlth)",
+    y = "BMI"
+  ) 
+
+```
+
+
+
+
+
+* Q1.The plot is a scatterplot with jittered points representing the BMI values for different General Health groups. The vertical axis shows BMI values, and the horizontal axis shows different General Health Group.
+
+* Q2. The plot shows a slight negative relationship between the two variables, with higher BMI values associated with lower levels of self-reported general health.The relationship appears to be weak, with a lot of variability in BMI values across all levels of general health. 
+
+* Q3. The plot indicates that there is a positive relationship between general health status and BMI.  In other words, individuals who report better general health tend to have lower BMI, and those who report poorer general health tend to have higher BMI.
+
+* Q4. In the plot, we observe a considerable amount of variability in BMI for each level of general health. Specifically, there is overlap in the range of BMI values between different levels of general health, indicating that BMI alone may not be a reliable indicator of general health status.We can see from the plot that there is a general trend of increasing BMI with poorer reported general health. 
+
+
+
+
+
+
+## References:
+
+1.  https://www.cdc.gov/brfss/annual_data/annual_2015.html
+2.  https://www.cdc.gov/brfss/annual_data/2015/pdf/codebook15_llcp.pdf
+3.  https://www.kaggle.com/code/alexteboul/heart-disease-health-indicators-dataset-notebook
+4.  https://r-graph-gallery.com/index.html
+5.  http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html
+6.  https://stulp.gmw.rug.nl/ggplotworkshop/twodiscretevariables.html
+7.  https://datascott.com/blog/subtitles-with-ggplotly/
+8.  https://r-graphics.org/recipe-facet-label-text
+9.  https://towardsdatascience.com/data-visualization-101-how-to-choose-a-chart-type-9b8830e558d6
+10. http://www.sthda.com/english/wiki/ggplot2-axis-ticks-a-guide-to-customize-tick-marks-and-labels
+11. https://www.youtube.com/watch?v=qnw1xDnt_Ec
+12. https://www.youtube.com/watch?v=rBp3eYHrsfo
+13. https://www.rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf
+14. https://www.youtube.com/watch?v=uFUM9M97Me8
+15. https://topepo.github.io/caret/
+16. https://rmarkdown.rstudio.com/lesson-7.html
+17. https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
+18. https://www.analyticsvidhya.com/blog/2016/03/practical-guide-deal-imbalanced-classification-problems/
+19. https://www.youtube.com/watch?v=g0TfqTF127M
+
+***
+
+
+
+
+
+
+
